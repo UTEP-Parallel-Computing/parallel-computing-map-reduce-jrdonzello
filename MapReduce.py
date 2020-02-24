@@ -6,29 +6,31 @@ class MapReduce():
 
     def main(self):
         #total run time
-        start = time.process_time()
+        start = time.monotonic()
         self.runParallelWC()
-        end = time.process_time() - start
+        end = time.monotonic() - start
         print('Total runtime: {}'.format(end))
-
 
     def runParallelWC(self):
         wordCount = pymp.shared.dict()
-        with pymp.Parallel(2) as p:
+        with pymp.Parallel(8) as p:
             lock = p.lock
             for x in self.words:
                 wordCount[x] = 0
             for item in p.iterate(self.files):
-                start = time.process_time()
+                start = time.monotonic()
                 current_file = open(item, "r")
                 current_file = current_file.read()
+                # file load time
+                end1 = time.monotonic() - start
                 for word in self.words:
                     count = re.findall(word, current_file)
                     lock.acquire()
                     wordCount[word] += len(count)
                     lock.release()
-                end = time.process_time() - start
-                print('Thread num {} - Current file {} runtime: {}'.format(p.thread_num,item,end))
+                # find words time
+                end = time.monotonic() - start
+                print('Current file {} on thread num: {}\nOpen/read runtime: {}\nThread runtime: {}'.format(item,p.thread_num,end1,end))
         #print(wordCount)
 mapReduce = MapReduce()
 mapReduce.main()
